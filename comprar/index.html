@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<base href="/">
+<title>Thinker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Thinker faz vídeos com IA no Claude ou no ChatGPT: edita o que você gravou ou cria vídeos animados e narrados pra um canal sem aparecer.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: the page reads like an edit timeline. A waveform hero shows the cut, then tracks of features, library and offer. */
+:root {
+  color-scheme: dark;
+  --bg: #0d0e10;
+  --surface: #15171b;
+  --line: #262a31;
+  --fg: #f1efe9;
+  --muted: #9a9ea6;
+  --accent: #ff6a1f;
+  --accent-ink: #1a0b03;
+  --wave: #d9d5cb;
+  --font-display: "Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --step-0: 1rem;
+  --step-1: 1.25rem;
+  --step-2: clamp(1.6rem, 1.2rem + 1.6vw, 2.25rem);
+  --step-3: clamp(2.4rem, 1.4rem + 4.4vw, 4.75rem);
+  --radius: 10px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 400 var(--step-0)/1.6 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; line-height: 1.02; text-wrap: balance; margin: 0; }
+h1 { font-size: var(--step-3); font-variation-settings: "wdth" 78; letter-spacing: -0.01em; }
+h2 { font-size: var(--step-2); font-variation-settings: "wdth" 85; }
+h3 { font-size: var(--step-1); font-weight: 600; font-variation-settings: "wdth" 92; line-height: 1.2; }
+p { margin: 0; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.mono { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.04em; color: var(--muted); }
+.label { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.lede { color: var(--muted); font-size: var(--step-1); line-height: 1.5; max-width: 34ch; }
+
+/* Header */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 12px; }
+.logo { font-family: var(--font-display); font-weight: 800; font-size: 1.4rem; font-variation-settings: "wdth" 80; text-decoration: none; display: flex; align-items: center; gap: 8px; }
+.logo i { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); display: inline-block; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  background: var(--accent); color: var(--accent-ink);
+  font: 600 1rem/1 var(--font-body); text-decoration: none;
+  padding: 16px 26px; border-radius: 999px; border: 0; cursor: pointer;
+  transition: transform .15s ease, filter .15s ease;
+}
+.btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+.btn.small { padding: 10px 18px; font-size: 0.9rem; }
+.btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+
+/* Hero */
+.hero { padding-block: clamp(48px, 8vw, 96px) 40px; }
+.hero-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px; align-items: center; }
+.hero-copy { display: grid; gap: 24px; min-width: 0; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.cta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.hero-objects { position: relative; aspect-ratio: 1; max-width: 100%; background: #000; border-radius: 50%; }
+.hero-objects video { position: absolute; width: 46%; height: auto; }
+.hero-objects .o1 { left: 4%; top: 6%; }
+.hero-objects .o2 { right: 2%; top: 22%; width: 40%; }
+.hero-objects .o3 { left: 24%; bottom: 0; width: 50%; }
+
+/* Timeline */
+.timeline { margin-top: 48px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 20px; display: grid; gap: 14px; }
+.track { display: grid; grid-template-columns: 110px 1fr 64px; gap: 16px; align-items: center; }
+.track canvas { width: 100%; height: 64px; display: block; min-width: 0; }
+.track .mono:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.track-name { font-family: var(--font-mono); font-size: 0.78rem; color: var(--fg); }
+.timeline-foot { display: flex; flex-wrap: wrap; gap: 8px 24px; border-top: 1px solid var(--line); padding-top: 14px; }
+.timeline-foot b { color: var(--fg); font-weight: 500; }
+.legend-cut::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: -1px; background: var(--accent); opacity: .55; border-radius: 2px; }
+
+/* Sections */
+section { padding-block: clamp(56px, 8vw, 104px); }
+.sec-head { display: grid; gap: 14px; margin-bottom: 40px; max-width: 640px; }
+.sec-head p { color: var(--muted); }
+
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-top: 1px solid var(--line); }
+.step { display: grid; gap: 12px; align-content: start; padding: 28px 24px 0 0; min-width: 0; }
+.step + .step { padding-left: 24px; border-left: 1px solid var(--line); }
+.step p { color: var(--muted); }
+.step code { font-family: var(--font-mono); font-size: 0.85em; background: var(--surface); border: 1px solid var(--line); padding: 2px 6px; border-radius: 5px; color: var(--fg); }
+
+.features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 48px; }
+.feature { display: grid; grid-template-columns: 76px 1fr; gap: 16px; padding-block: 22px; border-top: 1px solid var(--line); min-width: 0; }
+.feature .mono { padding-top: 4px; }
+.feature p { color: var(--muted); margin-top: 6px; }
+
+/* Faceless channel */
+.faceless { background: var(--surface); border-block: 1px solid var(--line); }
+.pipeline { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--accent); }
+.pipeline li { display: grid; gap: 10px; align-content: start; padding: 20px 20px 0 0; min-width: 0; position: relative; }
+.pipeline li::before { content: ""; position: absolute; top: -6px; left: 0; width: 11px; height: 11px; border-radius: 50%; background: var(--accent); }
+.pipeline p { color: var(--muted); font-size: 0.95rem; }
+
+/* Library */
+.library { background: var(--surface); border-block: 1px solid var(--line); }
+.counts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-bottom: 48px; }
+.count { padding: 20px 20px 20px 0; border-top: 1px solid var(--line); }
+.count strong { display: block; font-family: var(--font-display); font-size: clamp(2.2rem, 1.6rem + 2.4vw, 3.4rem); font-weight: 700; font-variation-settings: "wdth" 80; line-height: 1; font-variant-numeric: tabular-nums; }
+.count span { color: var(--muted); font-size: 0.95rem; }
+.objects { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 48px; }
+.objects figure { margin: 0; background: #000; border-radius: var(--radius); aspect-ratio: 1; max-width: 100%; display: grid; place-items: center; overflow: hidden; }
+.objects video { width: 100%; height: auto; }
+.scene-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px 32px; }
+.scene-list div { min-width: 0; }
+.scene-list h3 { font-size: 1rem; display: flex; justify-content: space-between; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+.scene-list h3 .mono { font-size: 0.75rem; }
+.scene-list p { color: var(--muted); font-size: 0.92rem; line-height: 1.55; }
+
+/* Audience */
+.uses { display: flex; flex-wrap: wrap; gap: 10px; }
+.uses span { border: 1px solid var(--line); border-radius: 999px; padding: 10px 18px; font-size: 0.95rem; }
+
+/* Requirements */
+.req { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+.req ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; }
+.req li { padding-block: 14px; border-top: 1px solid var(--line); display: flex; gap: 14px; }
+.req li::before { content: "—"; color: var(--accent); }
+.req .note { color: var(--muted); font-size: 0.92rem; margin-top: 16px; }
+
+/* Examples */
+.examples { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.example { margin: 0; display: grid; gap: 10px; min-width: 0; }
+.example .frame { position: relative; aspect-ratio: 9 / 16; max-width: 100%; border-radius: 18px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); }
+.example video { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; }
+.example .empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 16px; color: var(--muted); font-family: var(--font-mono); font-size: 0.75rem; background: repeating-linear-gradient(135deg, transparent 0 12px, color-mix(in srgb, var(--line) 50%, transparent) 12px 13px); }
+.example .sound { position: absolute; right: 10px; bottom: 10px; background: color-mix(in srgb, var(--bg) 70%, transparent); color: var(--fg); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font: 500 0.75rem var(--font-mono); cursor: pointer; }
+.example figcaption { display: grid; gap: 2px; }
+.example figcaption b { font-weight: 600; }
+.example figcaption span { color: var(--muted); font-size: 0.9rem; }
+
+/* Offer: light card on the dark page */
+.offer { --card-bg: #fbfaf7; --card-fg: #17181b; --card-muted: #5f636b; --card-soft: #f3eee6; --card-line: #e6e1d8; }
+.offer .sec-head { margin-inline: auto; text-align: center; justify-items: center; }
+.offer-card { max-width: 440px; margin: 0 auto; background: var(--card-bg); color: var(--card-fg); border-radius: 24px; padding: 28px 24px; display: grid; gap: 20px; box-shadow: 0 30px 80px -20px color-mix(in srgb, var(--accent) 45%, transparent); }
+.offer-head { display: flex; gap: 14px; align-items: center; }
+.offer-icon { width: 52px; height: 52px; border-radius: 14px; background: var(--accent); display: grid; place-items: center; flex: none; }
+.offer-icon i { width: 14px; height: 14px; border-radius: 50%; background: var(--card-bg); }
+.offer-head b { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; display: block; }
+.offer-head span { color: var(--card-muted); font-size: 0.92rem; }
+.pay-tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--card-soft); border-radius: 12px; padding: 4px; }
+.pay-tabs button { border: 0; background: transparent; color: var(--card-muted); font: 600 0.95rem var(--font-body); padding: 10px; border-radius: 9px; cursor: pointer; }
+.pay-tabs button[aria-selected="true"] { background: var(--card-bg); color: var(--card-fg); box-shadow: 0 1px 3px rgb(0 0 0 / .1); }
+.offer-price { display: grid; gap: 4px; }
+.offer-price .old { color: var(--card-muted); text-decoration: line-through; font-size: 0.95rem; }
+.offer-price strong { font-family: var(--font-body); font-size: clamp(3.2rem, 2.6rem + 3vw, 4.4rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; display: flex; align-items: flex-start; gap: 6px; }
+.offer-price strong small { font-size: 1.1rem; padding-top: 0.5em; color: var(--card-muted); font-weight: 600; }
+.offer-price > span:last-child { color: var(--card-muted); }
+.offer-card .btn { width: 100%; padding-block: 18px; font-size: 1.05rem; }
+.offer-card .btn:focus-visible { outline-color: var(--card-fg); }
+.offer-notes { display: grid; gap: 6px; color: var(--card-muted); font-size: 0.88rem; }
+.offer-list { list-style: none; padding: 20px 0 0; margin: 0; display: grid; gap: 16px; border-top: 1px solid var(--card-line); }
+.offer-list .list-title { display: block; color: var(--card-muted); font-size: 0.9rem; }
+.offer-list li { display: grid; grid-template-columns: 22px 1fr; gap: 12px; }
+.offer-list svg { width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; margin-top: 1px; }
+.offer-list b { font-weight: 600; display: block; }
+.offer-list p { color: var(--card-muted); font-size: 0.92rem; line-height: 1.45; }
+.guarantee { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; background: var(--card-soft); border-radius: 14px; padding: 16px; }
+.guarantee .seal { width: 54px; height: 54px; border-radius: 50%; border: 2px solid var(--accent); display: grid; place-content: center; text-align: center; color: var(--accent); line-height: 1; }
+.guarantee .seal b { font-size: 1.2rem; }
+.guarantee .seal span { font: 600 0.55rem var(--font-mono); letter-spacing: .08em; }
+.guarantee p { font-size: 0.9rem; color: var(--card-muted); }
+.guarantee p b { color: var(--card-fg); display: block; }
+
+/* FAQ */
+.faq { display: grid; gap: 0; max-width: 780px; }
+.faq details { border-top: 1px solid var(--line); }
+.faq details:last-child { border-bottom: 1px solid var(--line); }
+.faq summary { cursor: pointer; list-style: none; padding-block: 20px; font-weight: 600; display: flex; justify-content: space-between; gap: 16px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font-family: var(--font-mono); color: var(--accent); }
+.faq details[open] summary::after { content: "−"; }
+.faq details p { color: var(--muted); padding-bottom: 20px; max-width: 65ch; }
+
+footer { border-top: 1px solid var(--line); padding-block: 32px; }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; }
+
+@media (max-width: 860px) {
+  .hero-grid, .req { grid-template-columns: 1fr; }
+  .examples { grid-template-columns: repeat(2, 1fr); }
+  .hero-objects { width: min(260px, 80%); justify-self: center; }
+  .steps, .features, .scene-list, .pipeline { grid-template-columns: 1fr; }
+  .pipeline { border-top: 0; border-left: 1px solid var(--accent); }
+  .pipeline li { padding: 0 0 24px 24px; }
+  .pipeline li::before { top: 6px; left: -6px; }
+  .step, .step + .step { padding: 24px 0; border-left: 0; }
+  .step + .step { border-top: 1px solid var(--line); }
+  .objects { grid-template-columns: repeat(4, 1fr); }
+  .objects figure:nth-child(n+9) { display: none; }
+}
+@media (max-width: 520px) {
+  .track { grid-template-columns: 1fr 52px; }
+  .track-name { grid-column: 1 / -1; }
+  .counts { grid-template-columns: repeat(2, 1fr); }
+  .objects { grid-template-columns: repeat(2, 1fr); }
+  .objects figure:nth-child(n+5) { display: none; }
+  .top .btn { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .btn { transition: none; }
+}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#inicio"><i></i>Thinker</a>
+    <a class="btn small js-buy" href="#oferta">Quero o Thinker</a>
+  </div>
+</header>
+
+<main id="inicio">
+  <div class="wrap hero">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="label">Vídeo com IA · Funciona no Claude ou no ChatGPT</span>
+        <h1>Vídeo pronto, <em>com ou sem</em> você na tela.</h1>
+        <p class="lede">Gravou falando? Ele corta pausas e erros, legenda e coloca motion. Não quer aparecer? Ele cria vídeos animados e narrados pra você montar um canal do zero.</p>
+        <div class="cta-row">
+          <a class="btn js-buy" href="#oferta">Quero o Thinker</a>
+          <span class="mono">Windows ou Mac</span>
+        </div>
+      </div>
+      <div class="hero-objects" aria-hidden="true">
+        <video class="o1" src="assets/clapperboard.webm" autoplay muted loop playsinline></video>
+        <video class="o2" src="assets/microphone.webm" autoplay muted loop playsinline></video>
+        <video class="o3" src="assets/play.webm" autoplay muted loop playsinline></video>
+      </div>
+    </div>
+
+    <figure class="timeline" aria-label="Exemplo: um vídeo de 58 segundos vira 41 segundos depois que o Thinker corta as pausas">
+      <div class="track">
+        <span class="track-name">Gravado</span>
+        <canvas id="wave-raw" aria-hidden="true"></canvas>
+        <span class="mono">00:58</span>
+      </div>
+      <div class="track">
+        <span class="track-name">Com Thinker</span>
+        <canvas id="wave-cut" aria-hidden="true"></canvas>
+        <span class="mono">00:41</span>
+      </div>
+      <figcaption class="timeline-foot mono">
+        <span class="legend-cut">pausa, respiro ou erro cortado</span>
+        <span>Os cortes seguem a onda do áudio, <b>não um timer</b></span>
+      </figcaption>
+    </figure>
+  </div>
+
+  <section id="exemplos">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="label">Exemplos</span>
+        <h2>Um canal inteiro, sem ninguém aparecer</h2>
+        <p>Vídeos animados e narrados por IA, do roteiro à legenda. Toque em "Ativar som" pra ouvir.</p>
+      </div>
+      <div class="examples" id="examples-grid"></div>
+    </div>
+  </section>
+
+  <section class="faceless" id="sem-aparecer">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="label">Canal sem aparecer</span>
+        <h2>Monte um canal inteiro sem mostrar o rosto</h2>
+        <p>Você escolhe o tema. O Thinker pesquisa, escreve, narra e anima. É o formato dos canais de curiosidade que crescem no Reels, no TikTok e no Shorts.</p>
+      </div>
+      <ol class="pipeline">
+        <li><span class="mono">Tema</span><h3>Você dá a ideia</h3><p>"Por que o bocejo é contagioso", "como o GPS sabe onde você está".</p></li>
+        <li><span class="mono">Roteiro</span><h3>Ele pesquisa e escreve</h3><p>Gancho nos 3 primeiros segundos, fatos conferidos e chamada no final.</p></li>
+        <li><span class="mono">Voz</span><h3>Narração com voz de IA</h3><p>Uma voz criada pro seu canal, sem gravar nada.</p></li>
+        <li><span class="mono">Animação</span><h3>Cenas, legenda e trilha</h3><p>Ilustração animada, legenda palavra por palavra e efeitos sonoros.</p></li>
+        <li><span class="mono">Aprovação</span><h3>Você aprova e posta</h3><p>Nada sai sem o seu ok, nem o roteiro nem o vídeo.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="como-funciona">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="label">Como funciona</span>
+        <h2>Três passos, sem abrir programa de edição</h2>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <span class="mono">Passo 1</span>
+          <h3>Instale colando um pedido</h3>
+          <p>Abra o Claude ou o ChatGPT no modo de código e cole o pedido de instalação que vem no pacote. Ele prepara tudo sozinho.</p>
+        </div>
+        <div class="step">
+          <span class="mono">Passo 2</span>
+          <h3>Diga o que você quer</h3>
+          <p>Digite <code>/thinker</code> e escreva normal: "edita esse vídeo pra Reels e coloca legenda" ou "faz um vídeo animado sobre por que o céu é azul".</p>
+        </div>
+        <div class="step">
+          <span class="mono">Passo 3</span>
+          <h3>Aprove e receba</h3>
+          <p>Antes de mexer, ele mostra um resumo de tudo que vai fazer e espera seu "ok". O vídeo pronto cai na sua pasta Downloads.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="recursos">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="label">O que ele faz</span>
+        <h2>O trabalho de um editor, do corte à entrega</h2>
+      </div>
+      <div class="features">
+        <div class="feature"><span class="mono">Corte</span><div><h3>Pausas, respiros e erros</h3><p>Mede a onda do áudio e corta no ponto certo, sem comer o começo das palavras.</p></div></div>
+        <div class="feature"><span class="mono">Tomadas</span><div><h3>Escolhe a melhor tomada</h3><p>Gravou a mesma frase três vezes? Ele compara e fica com a melhor.</p></div></div>
+        <div class="feature"><span class="mono">Legenda</span><div><h3>Legenda que bate com a fala</h3><p>Até três palavras por vez, no estilo que você escolher. Também exporta SRT e VTT.</p></div></div>
+        <div class="feature"><span class="mono">Áudio</span><div><h3>Voz no volume certo</h3><p>Nivela a voz no padrão das redes, tira ruído quando você pede e coloca trilha e efeitos.</p></div></div>
+        <div class="feature"><span class="mono">Imagem</span><div><h3>Enquadramento pelo rosto</h3><p>Reenquadra pra 9:16 seguindo você. Faz tela verde e texto atrás da pessoa.</p></div></div>
+        <div class="feature"><span class="mono">Motion</span><div><h3>Animação na palavra certa</h3><p>Gráficos, setas, listas e provas entram no momento exato em que você fala delas.</p></div></div>
+        <div class="feature"><span class="mono">Estilo</span><div><h3>"Igual esse reel"</h3><p>Mande um vídeo de referência. Ele mede o ritmo, a legenda e os efeitos e aplica no seu.</p></div></div>
+        <div class="feature"><span class="mono">Versões</span><div><h3>Ganchos em lote</h3><p>Gera várias versões do mesmo vídeo com ganchos diferentes pra você testar.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="library" id="biblioteca">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="label">Biblioteca inclusa</span>
+        <h2>Tudo que o vídeo precisa já vem no pacote</h2>
+        <p>Sem banco de imagens pago e sem procurar música. O material está liberado pra uso comercial.</p>
+      </div>
+      <div class="counts">
+        <div class="count"><strong>145</strong><span>cenas animadas</span></div>
+        <div class="count"><strong>1.380</strong><span>ícones 3D</span></div>
+        <div class="count"><strong>45</strong><span>objetos 3D girando</span></div>
+        <div class="count"><strong>170</strong><span>efeitos sonoros</span></div>
+        <div class="count"><strong>23</strong><span>músicas de fundo</span></div>
+        <div class="count"><strong>19</strong><span>fundos e overlays animados</span></div>
+      </div>
+      <div class="objects" aria-label="Alguns dos objetos 3D animados inclusos">
+        <figure><video src="assets/camera.webm" autoplay muted loop playsinline aria-hidden="true"></video></figure>
+        <figure><video src="assets/money.webm" autoplay muted loop playsinline aria-hidden="true"></video></figure>
+        <figure><video src="assets/megaphone.webm" autoplay muted loop playsinline aria-hidden="true"></video></figure>
+        <figure><video src="assets/chart.webm" autoplay muted loop playsinline aria-hidden="true"></video></figure>
+        <figure><video src="assets/ringlight.webm" autoplay muted loop playsinline aria-hidden="true"></video></figure>
+      </div>
+      <div class="scene-list">
+        <div><h3>Legendas e títulos <span class="mono">19</span></h3><p>Karaokê, palavra em vermelho, máquina de escrever, impacto, contorno brilhante.</p></div>
+        <div><h3>Setas e marcações <span class="mono">17</span></h3><p>Seta curva, círculo, sublinhado, marca-texto, check verde, X vermelho.</p></div>
+        <div><h3>Efeitos de vídeo <span class="mono">13</span></h3><p>VHS, chuva de dinheiro, confete, cinema, noir, tremida, estática.</p></div>
+        <div><h3>Transições <span class="mono">10</span></h3><p>Flash, glitch, queimadura de filme, cortina, íris, zoom, TV.</p></div>
+        <div><h3>Provas, listas e números <span class="mono">22</span></h3><p>Contador de faturamento, recibo, checklist, antes e depois, comparação.</p></div>
+        <div><h3>Por nicho <span class="mono">31</span></h3><p>Saúde, nutrição, jurídico, imobiliário, odontologia e criadores de conteúdo.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="para-quem">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="label">Para quem é</span>
+        <h2>Pra quem grava e pra quem não quer aparecer</h2>
+        <p>Grave no celular ou na câmera, ou deixe a IA narrar. Serve pra criador, especialista e pra quem quer começar um canal do zero.</p>
+      </div>
+      <div class="uses">
+        <span>Canal de curiosidades</span><span>Canal sem aparecer</span><span>Reels e TikTok</span><span>Anúncios</span><span>VSL</span><span>Aulas e cursos</span><span>Vídeos de produto</span><span>Shorts do YouTube</span><span>Conteúdo de especialista</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="requisitos">
+    <div class="wrap req">
+      <div class="sec-head" style="margin-bottom:0">
+        <span class="label">O que você precisa</span>
+        <h2>Funciona no Windows e no Mac</h2>
+        <p>Seu vídeo não sobe pra nenhum servidor. A edição acontece no seu computador.</p>
+      </div>
+      <div>
+        <ul>
+          <li>Assinatura do Claude ou do ChatGPT</li>
+          <li>Windows ou Mac com 5 GB livres</li>
+          <li>Internet só na primeira instalação</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="offer" id="oferta">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="label">Oferta</span>
+        <h2>Seu editor de vídeo, por menos que um vídeo editado</h2>
+      </div>
+      <div class="offer-card">
+        <div class="offer-head">
+          <span class="offer-icon" aria-hidden="true"><i></i></span>
+          <div><b>Thinker</b><span>Vídeo com IA, com ou sem você na tela</span></div>
+        </div>
+        <div class="pay-tabs" role="tablist" aria-label="Forma de pagamento">
+          <button type="button" role="tab" id="tab-cash" aria-selected="true">À vista</button>
+          <button type="button" role="tab" id="tab-parcel" aria-selected="false">Parcelado</button>
+        </div>
+        <div class="offer-price" aria-live="polite">
+          <span class="old" id="price-old"></span>
+          <strong id="price-main"></strong>
+          <span id="price-sub"></span>
+        </div>
+        <a class="btn js-checkout" href="#oferta">Quero o Thinker</a>
+        <div class="offer-notes">
+          <p>Pagamento por PIX ou cartão.</p>
+          <p>Funciona no computador, Windows ou Mac, com o Claude ou o ChatGPT no plano pago. A assinatura deles é paga à parte.</p>
+        </div>
+        <ul class="offer-list" aria-label="O que vem">
+          <li class="list-title">O que vem</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg><div><b>Thinker</b><p>Corta pausas e erros, escolhe a melhor tomada, legenda e coloca motion.</p></div></li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 4v16M3 9h5M3 15h5"/></svg><div><b>Modo canal sem aparecer</b><p>Do tema ao vídeo animado e narrado, sem gravar nada.</p></div></li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7l8-4 8 4-8 4z"/><path d="M4 12l8 4 8-4M4 17l8 4 8-4"/></svg><div><b>Biblioteca completa</b><p>145 cenas animadas, 1.380 ícones 3D, músicas, efeitos sonoros e fundos.</p></div></li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M9 10h6M9 14h6M9 18h3"/></svg><div><b>Guia de instalação</b><p>Três passos pra instalar e fazer o primeiro vídeo.</p></div></li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg><div><b>Acesso na hora, por e-mail</b><p>Logo depois da confirmação do pagamento.</p></div></li>
+        </ul>
+        <div class="guarantee">
+          <span class="seal" aria-hidden="true"><b>7</b><span>DIAS</span></span>
+          <p><b>Garantia de instalação em 7 dias</b>Se o Thinker não instalar no seu computador, peça o reembolso em até 7 dias e receba tudo de volta. Depois de instalado, não há reembolso.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="duvidas">
+    <div class="wrap">
+      <div class="sec-head"><span class="label">Dúvidas</span><h2>Perguntas frequentes</h2></div>
+      <div class="faq">
+        <details><summary>Preciso saber editar vídeo?</summary><p>Não. Você descreve o que quer em português e o Thinker faz. Antes de começar, ele mostra o plano e espera sua aprovação.</p></details>
+        <details><summary>Dá pra fazer vídeo sem aparecer?</summary><p>Dá. No modo canal, você só escolhe o tema. O Thinker escreve o roteiro, gera a narração com voz de IA, anima as cenas e coloca legenda. Você não grava nada.</p></details>
+        <details><summary>Preciso saber programar?</summary><p>Não. A instalação é colar um pedido no Claude ou no ChatGPT. Ele instala as ferramentas que faltarem e avisa quando terminar.</p></details>
+        <details><summary>Preciso pagar o Claude ou o ChatGPT à parte?</summary><p>Sim. O Thinker roda no modo de código deles (Claude Code no Claude, Codex no ChatGPT), que vem nos planos pagos. Você precisa de um dos dois.</p></details>
+        <details><summary>Funciona no Windows?</summary><p>Funciona no Windows e no Mac. Precisa de 5 GB livres e internet na primeira instalação.</p></details>
+        <details><summary>Meu vídeo vai pra internet?</summary><p>Não. Corte, legenda, áudio e animação acontecem no seu computador.</p></details>
+        <details><summary>Posso usar as músicas e cenas em vídeos comerciais?</summary><p>Sim. As músicas, efeitos e ícones inclusos são de uso livre, inclusive em anúncios.</p></details>
+        <details><summary>Funciona com vídeo gravado no celular?</summary><p>Sim. Ele mantém a qualidade original e não aplica filtro nenhum que você não pediu.</p></details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="logo"><i></i>Thinker</span>
+    <span class="mono">© 2026 Thinker. Todos os direitos reservados.</span>
+  </div>
+</footer>
+
+<script>
+// Fill these in before going live.
+const CONFIG = {
+  checkoutUrl: "https://pay.kiwify.com.br/6CiXMG4",          // link do checkout (Hotmart, Kiwify...)
+  price: "37",              // à vista, sem "R$"
+  oldPrice: "",             // ex.: "R$ 197" (deixe vazio pra esconder)
+  installments: "12x no cartão", // troque pelo valor da parcela do checkout, ex.: "12x de R$ 10,03"
+  // Vídeos de exemplo em assets/exemplos/ (9:16, mp4 + capa jpg).
+  examples: [
+    { src: "assets/exemplos/bocejo.mp4",        title: "O mistério do bocejo",    text: "Curiosidade · 1min26" },
+    { src: "assets/exemplos/rolagem.mp4",       title: "Como o feed te prende",   text: "Tecnologia · 1min19" },
+    { src: "assets/exemplos/nove-geracoes.mp4", title: "Mobilidade social",       text: "Economia · 1min18" },
+    { src: "assets/exemplos/barometro.mp4",     title: "Por que o barômetro é genial", text: "Ciência · 1min31" }
+  ]
+};
+
+// Price card with cash / installment tabs
+const priceMain = document.getElementById("price-main");
+const priceSub = document.getElementById("price-sub");
+const tabs = { cash: document.getElementById("tab-cash"), parcel: document.getElementById("tab-parcel") };
+function showPrice(mode) {
+  tabs.cash.setAttribute("aria-selected", mode === "cash");
+  tabs.parcel.setAttribute("aria-selected", mode === "parcel");
+  if (mode === "cash") {
+    priceMain.innerHTML = "<small>R$</small>";
+    priceMain.append(CONFIG.price);
+    priceSub.textContent = "ou " + CONFIG.installments;
+  } else {
+    priceMain.textContent = CONFIG.installments;
+    priceMain.style.fontSize = "clamp(2.2rem, 1.8rem + 2vw, 3rem)";
+    priceSub.textContent = "ou R$ " + CONFIG.price + " à vista";
+  }
+  if (mode === "cash") priceMain.style.fontSize = "";
+}
+tabs.cash.addEventListener("click", () => showPrice("cash"));
+tabs.parcel.addEventListener("click", () => showPrice("parcel"));
+showPrice("cash");
+
+const old = document.getElementById("price-old");
+old.textContent = CONFIG.oldPrice;
+old.hidden = !CONFIG.oldPrice;
+
+// Example videos; a missing file shows a placeholder instead of a broken player
+const grid = document.getElementById("examples-grid");
+CONFIG.examples.forEach(ex => {
+  const fig = document.createElement("figure");
+  fig.className = "example";
+  fig.innerHTML = '<div class="frame"><div class="empty">Vídeo de exemplo<br>em breve</div></div><figcaption><b></b><span></span></figcaption>';
+  fig.querySelector("b").textContent = ex.title;
+  fig.querySelector("figcaption span").textContent = ex.text;
+  const frame = fig.querySelector(".frame");
+  const v = document.createElement("video");
+  Object.assign(v, { src: ex.src, poster: ex.src.replace(/\.mp4$/, ".jpg"), muted: true, loop: true, autoplay: true, playsInline: true, preload: "metadata" });
+  v.setAttribute("aria-label", ex.title);
+  v.addEventListener("loadeddata", () => {
+    frame.querySelector(".empty").remove();
+    frame.prepend(v);
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "sound"; btn.textContent = "Ativar som";
+    btn.addEventListener("click", () => { v.muted = !v.muted; btn.textContent = v.muted ? "Ativar som" : "Tirar som"; v.play(); });
+    frame.append(btn);
+  }, { once: true });
+  grid.append(fig);
+});
+
+// "Quero o Thinker" buttons scroll to the price card and mark the visit as /comprar
+const BUY_PATH = "/comprar";
+const goToOffer = (smooth) => document.getElementById("oferta").scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
+document.querySelectorAll(".js-buy").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  goToOffer(true);
+  if (location.protocol.startsWith("http") && location.pathname !== BUY_PATH) {
+    try { history.pushState(null, "", BUY_PATH + location.search); } catch (_) {}
+  }
+}));
+if (location.pathname.replace(/\/$/, "") === BUY_PATH) addEventListener("load", () => goToOffer(false));
+
+// The card button goes to the checkout, carrying the visit's UTM parameters along
+if (CONFIG.checkoutUrl) {
+  const url = new URL(CONFIG.checkoutUrl);
+  new URLSearchParams(location.search).forEach((v, k) => { if (/^(utm_|src$|sck$)/.test(k)) url.searchParams.set(k, v); });
+  document.querySelectorAll(".js-checkout").forEach(a => { a.href = url.toString(); });
+}
+
+// Waveform: a fixed pseudo-random speech pattern with silent gaps; the second track drops the gaps.
+(function () {
+  let seed = 7;
+  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const bars = [];
+  const gaps = [];
+  for (let i = 0; i < 240; i++) {
+    const inGap = (i % 52 > 40) || (i > 95 && i < 108) || (i > 196 && i < 204);
+    bars.push(inGap ? 0.03 + rand() * 0.04 : 0.2 + Math.abs(Math.sin(i * 0.31)) * 0.5 + rand() * 0.3);
+    gaps.push(inGap);
+  }
+  const css = getComputedStyle(document.documentElement);
+  const wave = css.getPropertyValue("--wave").trim();
+  const accent = css.getPropertyValue("--accent").trim();
+
+  function draw(id, keepGaps) {
+    const c = document.getElementById(id);
+    const w = c.clientWidth, h = c.clientHeight, dpr = window.devicePixelRatio || 1;
+    c.width = w * dpr; c.height = h * dpr;
+    const g = c.getContext("2d");
+    g.scale(dpr, dpr);
+    const list = keepGaps ? bars.map((v, i) => [v, gaps[i]]) : bars.map((v, i) => [v, gaps[i]]).filter(b => !b[1]);
+    const step = w / bars.length; // same scale on both tracks, so the cut track is visibly shorter
+    list.forEach(([v, gap], i) => {
+      const x = i * step, bh = Math.max(2, v * h);
+      if (gap) { g.globalAlpha = 0.55; g.fillStyle = accent; g.fillRect(x, 0, step, h); }
+      g.globalAlpha = 1; g.fillStyle = gap ? accent : wave;
+      g.fillRect(x + step * 0.2, (h - bh) / 2, Math.max(1, step * 0.6), bh);
+    });
+  }
+  const render = () => { draw("wave-raw", true); draw("wave-cut", false); };
+  render();
+  addEventListener("resize", render);
+})();
+</script>
+
+</html>

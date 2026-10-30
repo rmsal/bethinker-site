@@ -229,7 +229,7 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
 <header class="top">
   <div class="wrap">
     <a class="logo" href="#inicio"><i></i>Thinker</a>
-    <a class="btn small js-checkout" href="#oferta">Quero o Thinker</a>
+    <a class="btn small js-buy" href="#oferta">Quero o Thinker</a>
   </div>
 </header>
 
@@ -241,7 +241,7 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
         <h1>Vídeo pronto, <em>com ou sem</em> você na tela.</h1>
         <p class="lede">Gravou falando? Ele corta pausas e erros, legenda e coloca motion. Não quer aparecer? Ele cria vídeos animados e narrados pra você montar um canal do zero.</p>
         <div class="cta-row">
-          <a class="btn js-checkout" href="#oferta">Quero o Thinker</a>
+          <a class="btn js-buy" href="#oferta">Quero o Thinker</a>
           <span class="mono">Windows ou Mac</span>
         </div>
       </div>
@@ -536,8 +536,23 @@ CONFIG.examples.forEach(ex => {
   grid.append(fig);
 });
 
+// "Quero o Thinker" buttons scroll to the price card and mark the visit as /comprar
+const BUY_PATH = "/comprar";
+const goToOffer = (smooth) => document.getElementById("oferta").scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
+document.querySelectorAll(".js-buy").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  goToOffer(true);
+  if (location.protocol.startsWith("http") && location.pathname !== BUY_PATH) {
+    try { history.pushState(null, "", BUY_PATH + location.search); } catch (_) {}
+  }
+}));
+if (location.pathname.replace(/\/$/, "") === BUY_PATH) addEventListener("load", () => goToOffer(false));
+
+// The card button goes to the checkout, carrying the visit's UTM parameters along
 if (CONFIG.checkoutUrl) {
-  document.querySelectorAll(".js-checkout").forEach(a => { a.href = CONFIG.checkoutUrl; a.target = "_blank"; a.rel = "noopener"; });
+  const url = new URL(CONFIG.checkoutUrl);
+  new URLSearchParams(location.search).forEach((v, k) => { if (/^(utm_|src$|sck$)/.test(k)) url.searchParams.set(k, v); });
+  document.querySelectorAll(".js-checkout").forEach(a => { a.href = url.toString(); });
 }
 
 // Waveform: a fixed pseudo-random speech pattern with silent gaps; the second track drops the gaps.
